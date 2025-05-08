@@ -4,98 +4,96 @@
   <meta charset="UTF-8">
   <title>CallHippo Account Tracker</title>
   <script type="module">
+    // Firebase setup
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const firebaseConfig = {
-        apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
-        authDomain: "callhippo-tracker.firebaseapp.com",
-        projectId: "callhippo-tracker",
-        storageBucket: "callhippo-tracker.firebasestorage.app",
-        messagingSenderId: "957025324578",
-        appId: "1:957025324578:web:f7552a3baa6f9761bf847b",
-        measurementId: "G-JC0S3P2E1D"
-      };
+const firebaseConfig = {
+  apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
+  authDomain: "callhippo-tracker.firebaseapp.com",
+  projectId: "callhippo-tracker",
+  storageBucket: "callhippo-tracker.firebasestorage.app",
+  messagingSenderId: "957025324578",
+  appId: "1:957025324578:web:f7552a3baa6f9761bf847b",
+  measurementId: "G-JC0S3P2E1D"
+};
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-      const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
-      const container = document.getElementById('accounts');
-      const usernameInput = document.getElementById('username');
+    const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
+    const container = document.getElementById('accounts');
+    const usernameInput = document.getElementById('username');
 
-      function timeAgo(ts) {
-        const seconds = Math.floor((Date.now() - ts) / 1000);
-        if (seconds < 60) return `${seconds} seconds ago`;
-        const minutes = Math.floor(seconds / 60);
-        return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    function timeAgo(ts) {
+      const seconds = Math.floor((Date.now() - ts) / 1000);
+      if (seconds < 60) return ${seconds} seconds ago;
+      const minutes = Math.floor(seconds / 60);
+      return ${minutes} minute${minutes === 1 ? '' : 's'} ago;
+    }
+
+    async function claimAccount(index) {
+      const username = usernameInput.value.trim();
+      if (!username) {
+        alert("Please enter your name.");
+        return;
       }
+      const ref = doc(db, "callhippoClaims", account${index});
+      await setDoc(ref, {
+        user: username,
+        timestamp: Date.now()
+      });
+    }
 
-      async function claimAccount(index) {
-        const username = usernameInput.value.trim();
-        if (!username) {
-          alert("Please enter your name.");
-          return;
+    async function releaseAccount(index) {
+      const ref = doc(db, "callhippoClaims", account${index});
+      await setDoc(ref, {});
+    }
+
+    function renderClaim(index, claim) {
+      const div = document.createElement("div");
+      div.className = "account";
+      div.innerHTML = 
+        <h3>${accountNames[index]}</h3>
+        <div>Status: ${
+          claim && claim.user
+            ? <span class="claimed">In Use by ${claim.user} (${timeAgo(claim.timestamp)})</span>
+            : <span class="available">Available</span>
+        }</div>
+        ${
+          claim && claim.user
+            ? <button onclick="releaseAccount(${index})">Done</button>
+            : <button onclick="claimAccount(${index})">Claim This Account</button>
         }
-        const ref = doc(db, "callhippoClaims", `account${index}`);
-        await setDoc(ref, {
-          user: username,
-          timestamp: Date.now()
+      ;
+      container.appendChild(div);
+    }
+
+    window.claimAccount = claimAccount;
+    window.releaseAccount = releaseAccount;
+
+    function setupListeners() {
+      container.innerHTML = "";
+      for (let i = 0; i < accountNames.length; i++) {
+        const ref = doc(db, "callhippoClaims", account${i});
+        onSnapshot(ref, (docSnap) => {
+          container.innerHTML = "";
+          for (let j = 0; j < accountNames.length; j++) {
+            renderClaim(j, window.latestClaims?.[j] || {});
+          }
         });
       }
+    }
 
-      async function releaseAccount(index) {
-        const ref = doc(db, "callhippoClaims", `account${index}`);
-        await setDoc(ref, {});
-      }
-
-      function renderClaim(index, claim) {
-        const div = document.createElement("div");
-        div.className = "account";
-        div.innerHTML = `
-          <h3>${accountNames[index]}</h3>
-          <div>Status: ${
-            claim && claim.user
-              ? `<span class="claimed">In Use by ${claim.user} (${timeAgo(claim.timestamp)})</span>`
-              : `<span class="available">Available</span>`
-          }</div>
-          ${
-            claim && claim.user
-              ? `<button onclick="releaseAccount(${index})">Done</button>`
-              : `<button onclick="claimAccount(${index})">Claim This Account</button>`
-          }
-        `;
-        container.appendChild(div);
-      }
-
-      // Expose functions to global scope
-      window.claimAccount = claimAccount;
-      window.releaseAccount = releaseAccount;
-
-      function setupListeners() {
-        for (let i = 0; i < accountNames.length; i++) {
-          const ref = doc(db, "callhippoClaims", `account${i}`);
-          onSnapshot(ref, (docSnap) => {
-            const data = docSnap.data();
-            // Clear and re-render all accounts
-            container.innerHTML = "";
-            for (let j = 0; j < accountNames.length; j++) {
-              const currentRef = doc(db, "callhippoClaims", `account${j}`);
-              getDoc(currentRef).then((snapshot) => {
-                renderClaim(j, snapshot.data());
-              });
-            }
-          });
-        }
-      }
-
-      setupListeners();
-    });
+    setupListeners();
   </script>
 
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
     .account {
       border: 1px solid #ccc;
       padding: 15px;
@@ -116,6 +114,7 @@
   </style>
 </head>
 <body>
+
   <h1>CallHippo Account Usage</h1>
 
   <label for="username">Your name:</label><br>
