@@ -3,17 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>CallHippo Account Tracker</title>
-
-  <!-- Firebase SDK -->
   <script type="module">
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+    // Firebase setup
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
   authDomain: "callhippo-tracker.firebaseapp.com",
@@ -24,10 +18,9 @@ const firebaseConfig = {
   measurementId: "G-JC0S3P2E1D"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-    {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
     const container = document.getElementById('accounts');
     const usernameInput = document.getElementById('username');
@@ -80,18 +73,19 @@ const analytics = getAnalytics(app);
     window.releaseAccount = releaseAccount;
 
     function setupListeners() {
+      container.innerHTML = "";
       for (let i = 0; i < accountNames.length; i++) {
         const ref = doc(db, "callhippoClaims", `account${i}`);
         onSnapshot(ref, (docSnap) => {
-          const data = docSnap.data() || {};
-          const boxes = document.querySelectorAll(".account");
-          if (boxes[i]) boxes[i].remove(); // remove old one
-          renderClaim(i, data);
+          container.innerHTML = "";
+          for (let j = 0; j < accountNames.length; j++) {
+            renderClaim(j, window.latestClaims?.[j] || {});
+          }
         });
       }
     }
 
-    window.addEventListener('DOMContentLoaded', setupListeners);
+    setupListeners();
   </script>
 
   <style>
@@ -121,12 +115,11 @@ const analytics = getAnalytics(app);
 </head>
 <body>
 
-  <h1>CallHippo Account Usage </h1>
+  <h1>CallHippo Account Usage</h1>
 
   <label for="username">Your name:</label><br>
   <input type="text" id="username" placeholder="Enter your name" /><br><br>
 
   <div id="accounts"></div>
-
 </body>
 </html>
