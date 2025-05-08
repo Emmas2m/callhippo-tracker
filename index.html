@@ -9,15 +9,15 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
-      authDomain: "callhippo-tracker.firebaseapp.com",
-      projectId: "callhippo-tracker",
-      storageBucket: "callhippo-tracker.appspot.com",
-      messagingSenderId: "957025324578",
-      appId: "1:957025324578:web:f7552a3baa6f9761bf847b",
-      measurementId: "G-JC0S3P2E1D"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
+  authDomain: "callhippo-tracker.firebaseapp.com",
+  projectId: "callhippo-tracker",
+  storageBucket: "callhippo-tracker.firebasestorage.app",
+  messagingSenderId: "957025324578",
+  appId: "1:957025324578:web:f7552a3baa6f9761bf847b",
+  measurementId: "G-JC0S3P2E1D"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
