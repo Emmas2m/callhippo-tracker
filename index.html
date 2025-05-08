@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CallHippo Account Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .account {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      max-width: 400px;
+    }
+    .account h3 { margin: 0 0 10px; }
+    .claimed { color: green; }
+    .available { color: red; }
+    button { margin-top: 10px; margin-right: 10px; }
+    input[type="text"] {
+      padding: 5px;
+      font-size: 14px;
+      width: 250px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CallHippo Account Usage</h1>
+
+  <label for="username">Your name:</label><br>
+  <input type="text" id="username" placeholder="Enter your name" /><br><br>
+
+  <div id="accounts"></div>
+
+  <script>
+    const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
+    const storageKey = 'callhippo-claims';
+
+    function loadClaims() {
+      return JSON.parse(localStorage.getItem(storageKey) || '{}');
+    }
+
+    function saveClaims(claims) {
+      localStorage.setItem(storageKey, JSON.stringify(claims));
+    }
+
+    function timeAgo(ts) {
+      const seconds = Math.floor((Date.now() - ts) / 1000);
+      if (seconds < 60) return `${seconds} seconds ago`;
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+
+    function render() {
+      const claims = loadClaims();
+      const container = document.getElementById('accounts');
+      const currentUser = document.getElementById('username').value.trim();
+      container.innerHTML = '';
+
+      accountNames.forEach((acc, index) => {
+        const claim = claims[index];
+        const div = document.createElement('div');
+        div.className = 'account';
+
+        let statusHTML = '';
+        let buttonsHTML = '';
+
+        if (claim) {
+          statusHTML = `<span class="claimed">In Use by ${claim.user} (${timeAgo(claim.timestamp)})</span>`;
+          buttonsHTML = `<button onclick="confirmRelease(${index}, &quot;${acc}&quot;)">Done</button>`;
+        } else {
+          statusHTML = `<span class="available">Available</span>`;
+          if (currentUser) {
+            buttonsHTML = `<button onclick="claimAccount(${index})">Claim This Account</button>`;
+          }
+        }
+
+        div.innerHTML = `
+          <h3>${acc}</h3>
+          <div>Status: ${statusHTML}</div>
+          ${buttonsHTML}
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function claimAccount(index) {
+      const username = document.getElementById('username').value.trim();
+      if (!username) {
+        alert("Please enter your name first.");
+        return;
+      }
+
+      const claims = loadClaims();
+      claims[index] = {
+        user: username,
+        timestamp: Date.now()
+      };
+      saveClaims(claims);
+      render();
+    }
+
+    function confirmRelease(index, accountName) {
+      if (confirm(`Are you sure you want to release ${accountName}?`)) {
+        releaseAccount(index);
+      }
+    }
+
+    function releaseAccount(index) {
+      const claims = loadClaims();
+      delete claims[index];
+      saveClaims(claims);
+      render();
+    }
+
+    document.getElementById('username').addEventListener('input', render);
+    setInterval(render, 1000);
+    render();
+  </script>
+</body>
+</html>
