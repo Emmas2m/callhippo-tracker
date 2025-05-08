@@ -3,8 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <title>CallHippo Account Tracker</title>
+  <script type="module">
+    // Firebase setup
+   // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDh1mQAPkJf4O1NUCmNoNaDBJKmscUhoxA",
+  authDomain: "callhippo-tracker.firebaseapp.com",
+  projectId: "callhippo-tracker",
+  storageBucket: "callhippo-tracker.firebasestorage.app",
+  messagingSenderId: "957025324578",
+  appId: "1:957025324578:web:f7552a3baa6f9761bf847b",
+  measurementId: "G-JC0S3P2E1D"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
+    const container = document.getElementById('accounts');
+    const usernameInput = document.getElementById('username');
+
+    function timeAgo(ts) {
+      const seconds = Math.floor((Date.now() - ts) / 1000);
+      if (seconds < 60) return `${seconds} seconds ago`;
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+
+    async function claimAccount(index) {
+      const username = usernameInput.value.trim();
+      if (!username) {
+        alert("Please enter your name.");
+        return;
+      }
+      const ref = doc(db, "callhippoClaims", `account${index}`);
+      await setDoc(ref, {
+        user: username,
+        timestamp: Date.now()
+      });
+    }
+
+    async function releaseAccount(index) {
+      const ref = doc(db, "callhippoClaims", `account${index}`);
+      await setDoc(ref, {});
+    }
+
+    function renderClaim(index, claim) {
+      const div = document.createElement("div");
+      div.className = "account";
+      div.innerHTML = `
+        <h3>${accountNames[index]}</h3>
+        <div>Status: ${
+          claim && claim.user
+            ? `<span class="claimed">In Use by ${claim.user} (${timeAgo(claim.timestamp)})</span>`
+            : `<span class="available">Available</span>`
+        }</div>
+        ${
+          claim && claim.user
+            ? `<button onclick="releaseAccount(${index})">Done</button>`
+            : `<button onclick="claimAccount(${index})">Claim This Account</button>`
+        }
+      `;
+      container.appendChild(div);
+    }
+
+    window.claimAccount = claimAccount;
+    window.releaseAccount = releaseAccount;
+
+    function setupListeners() {
+      container.innerHTML = "";
+      for (let i = 0; i < accountNames.length; i++) {
+        const ref = doc(db, "callhippoClaims", `account${i}`);
+        onSnapshot(ref, (docSnap) => {
+          container.innerHTML = "";
+          for (let j = 0; j < accountNames.length; j++) {
+            renderClaim(j, window.latestClaims?.[j] || {});
+          }
+        });
+      }
+    }
+
+    setupListeners();
+  </script>
+
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
     .account {
       border: 1px solid #ccc;
       padding: 15px;
@@ -25,98 +124,15 @@
   </style>
 </head>
 <body>
+  <header>
+    <img src="company-logo.png" alt="Company Logo" style="max-width: 200px;">
+  </header>
+
   <h1>CallHippo Account Usage</h1>
 
   <label for="username">Your name:</label><br>
   <input type="text" id="username" placeholder="Enter your name" /><br><br>
 
   <div id="accounts"></div>
-
-  <script>
-    const accountNames = ["Jharna's Account", "Alex's Account", "Emma's Account"];
-    const storageKey = 'callhippo-claims';
-
-    function loadClaims() {
-      return JSON.parse(localStorage.getItem(storageKey) || '{}');
-    }
-
-    function saveClaims(claims) {
-      localStorage.setItem(storageKey, JSON.stringify(claims));
-    }
-
-    function timeAgo(ts) {
-      const seconds = Math.floor((Date.now() - ts) / 1000);
-      if (seconds < 60) return `${seconds} seconds ago`;
-      const minutes = Math.floor(seconds / 60);
-      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-    }
-
-    function render() {
-      const claims = loadClaims();
-      const container = document.getElementById('accounts');
-      const currentUser = document.getElementById('username').value.trim();
-      container.innerHTML = '';
-
-      accountNames.forEach((acc, index) => {
-        const claim = claims[index];
-        const div = document.createElement('div');
-        div.className = 'account';
-
-        let statusHTML = '';
-        let buttonsHTML = '';
-
-        if (claim) {
-          statusHTML = `<span class="claimed">In Use by ${claim.user} (${timeAgo(claim.timestamp)})</span>`;
-          buttonsHTML = `<button onclick="confirmRelease(${index}, &quot;${acc}&quot;)">Done</button>`;
-        } else {
-          statusHTML = `<span class="available">Available</span>`;
-          if (currentUser) {
-            buttonsHTML = `<button onclick="claimAccount(${index})">Claim This Account</button>`;
-          }
-        }
-
-        div.innerHTML = `
-          <h3>${acc}</h3>
-          <div>Status: ${statusHTML}</div>
-          ${buttonsHTML}
-        `;
-
-        container.appendChild(div);
-      });
-    }
-
-    function claimAccount(index) {
-      const username = document.getElementById('username').value.trim();
-      if (!username) {
-        alert("Please enter your name first.");
-        return;
-      }
-
-      const claims = loadClaims();
-      claims[index] = {
-        user: username,
-        timestamp: Date.now()
-      };
-      saveClaims(claims);
-      render();
-    }
-
-    function confirmRelease(index, accountName) {
-      if (confirm(`Are you sure you want to release ${accountName}?`)) {
-        releaseAccount(index);
-      }
-    }
-
-    function releaseAccount(index) {
-      const claims = loadClaims();
-      delete claims[index];
-      saveClaims(claims);
-      render();
-    }
-
-    document.getElementById('username').addEventListener('input', render);
-    setInterval(render, 1000);
-    render();
-  </script>
 </body>
 </html>
