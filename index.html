@@ -76,28 +76,12 @@
     window.releaseAccount = releaseAccount;
 
     function setupListeners() {
-  const claims = [];
-
-  for (let i = 0; i < accountNames.length; i++) {
-    const ref = doc(db, "callhippoClaims", `account${i}`);
-    onSnapshot(ref, (docSnap) => {
-      claims[i] = docSnap.data();
-      renderAllClaims(claims);
-    });
-  }
-
-  // Auto-update timer every 60 seconds
-  setInterval(() => {
-    renderAllClaims(claims);
-  }, 10000);
-}
-
-function renderAllClaims(claims) {
-  container.innerHTML = "";
-  for (let i = 0; i < accountNames.length; i++) {
-    renderClaim(i, claims[i]);
-  }
-}
+      const claims = Array(accountNames.length).fill({});
+      accountNames.forEach((_, i) => {
+        const ref = doc(db, "callhippoClaims", `account${i}`);
+        onSnapshot(ref, (docSnap) => {
+          claims[i] = docSnap.exists() ? docSnap.data() : {};
+          renderAllClaims(claims);
         });
       });
     }
